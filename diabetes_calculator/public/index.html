@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diabetes Risk Predictor</title>
+</head>
+<body>
+    <h2>Predicción de Riesgo de Diabetes</h2>
+
+    <form id="predictionForm">
+
+        <input type="number" step="any" name="age" placeholder="Edad" required><br>
+        <input type="number" step="any" name="bmi" placeholder="BMI" required><br>
+        <input type="number" step="any" name="blood_pressure" placeholder="Presión" required><br>
+        <input type="number" step="any" name="fasting_glucose_level" placeholder="Glucosa" required><br>
+        <input type="number" step="any" name="insulin_level" placeholder="Insulina" required><br>
+        <input type="number" step="any" name="HbA1c_level" placeholder="HbA1c" required><br>
+        <input type="number" step="any" name="cholesterol_level" placeholder="Colesterol" required><br>
+        <input type="number" step="any" name="triglycerides_level" placeholder="Triglicéridos" required><br>
+        <input type="number" step="any" name="daily_calorie_intake" placeholder="Calorías diarias" required><br>
+        <input type="number" step="any" name="sugar_intake_grams_per_day" placeholder="Azúcar (g/día)" required><br>
+        <input type="number" step="any" name="sleep_hours" placeholder="Horas de sueño" required><br>
+        <input type="number" step="any" name="stress_level" placeholder="Estrés" required><br>
+        <input type="number" step="any" name="waist_circumference_cm" placeholder="Cintura (cm)" required><br>
+
+        <select name="gender" required>
+            <option value="">Género</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+        </select><br>
+
+        <select name="physical_activity_level" required>
+            <option value="">Actividad física</option>
+            <option value="Low">Low</option>
+            <option value="Moderate">Moderate</option>
+            <option value="High">High</option>
+        </select><br>
+
+        <select name="family_history_diabetes" required>
+            <option value="">Historial familiar</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+        </select><br><br>
+
+        <button type="submit">Predecir</button>
+    </form>
+
+    <h3 id="result"></h3>
+
+    <script>
+        document.getElementById("predictionForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const data = {};
+
+            formData.forEach((value, key) => {
+                if (!isNaN(value) && value !== "") {
+                    data[key] = parseFloat(value);
+                } else {
+                    data[key] = value;
+                }
+            });
+
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            document.getElementById("result").innerText =
+                "Riesgo estimado: " + result.prediction.toFixed(2) + "%";
+        });
+    </script>
+</body>
+</html>
