@@ -1,101 +1,232 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Diabetes Risk Predictor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor de Riesgo de Diabetes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input, select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.3);
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        #error {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <h2>Predicción de Riesgo de Diabetes</h2>
+    <div class="container">
+        <h2>Predicción de Riesgo de Diabetes</h2>
+        <form id="predictionForm">
 
-    <form id="predictionForm">
+            <div class="form-group">
+                <label>Edad</label>
+                <input type="number" step="1" min="0" max="120" name="age" placeholder="Edad (0-120)" required>
+            </div>
 
-        <input type="number" step="1" min="0" max="120" name="age" placeholder="Edad (0-120)" required><br>
-        <input type="number" step="0.1" min="10" max="80" name="bmi" placeholder="BMI (10-80)" required><br>
-        <input type="number" step="1" min="50" max="250" name="blood_pressure" placeholder="Presión (50-250)" required><br>
-        <input type="number" step="1" min="50" max="500" name="fasting_glucose_level" placeholder="Glucosa (50-500)" required><br>
-        <input type="number" step="0.1" min="0" max="500" name="insulin_level" placeholder="Insulina (0-500)" required><br>
-        <input type="number" step="0.1" min="3" max="20" name="HbA1c_level" placeholder="HbA1c (3-20)" required><br>
-        <input type="number" step="1" min="50" max="400" name="cholesterol_level" placeholder="Colesterol (50-400)" required><br>
-        <input type="number" step="1" min="30" max="1000" name="triglycerides_level" placeholder="Triglicéridos (30-1000)" required><br>
-        <input type="number" step="1" min="500" max="10000" name="daily_calorie_intake" placeholder="Calorías diarias (500-10000)" required><br>
-        <input type="number" step="0.1" min="0" max="1000" name="sugar_intake_grams_per_day" placeholder="Azúcar (g/día)" required><br>
-        <input type="number" step="0.1" min="0" max="24" name="sleep_hours" placeholder="Horas de sueño (0-24)" required><br>
-        <input type="number" step="1" min="0" max="10" name="stress_level" placeholder="Estrés (0-10)" required><br>
-        <input type="number" step="0.1" min="30" max="200" name="waist_circumference_cm" placeholder="Cintura (cm)" required><br>
+            <div class="form-group">
+                <label>Índice de Masa Corporal (IMC)</label>
+                <input type="number" step="0.1" min="10" max="80" name="bmi" placeholder="IMC (10-80)" required>
+            </div>
 
-        <select name="gender" required>
-            <option value="">Género</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-        </select><br>
+            <div class="form-group">
+                <label>Presión Arterial</label>
+                <input type="number" step="1" min="50" max="250" name="blood_pressure" placeholder="Presión (50-250)" required>
+            </div>
 
-        <select name="physical_activity_level" required>
-            <option value="">Actividad física</option>
-            <option value="Low">Low</option>
-            <option value="Moderate">Moderate</option>
-            <option value="High">High</option>
-        </select><br>
+            <div class="form-group">
+                <label>Glucosa en Ayunas</label>
+                <input type="number" step="1" min="50" max="500" name="fasting_glucose_level" placeholder="Glucosa (50-500)" required>
+            </div>
 
-        <select name="family_history_diabetes" required>
-            <option value="">Historial familiar</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
-        </select><br><br>
+            <div class="form-group">
+                <label>Nivel de Insulina</label>
+                <input type="number" step="0.1" min="0" max="500" name="insulin_level" placeholder="Insulina (0-500)" required>
+            </div>
 
-        <button type="submit">Predecir</button>
-    </form>
+            <div class="form-group">
+                <label>HbA1c</label>
+                <input type="number" step="0.1" min="3" max="20" name="HbA1c_level" placeholder="HbA1c (3-20)" required>
+            </div>
 
-    <h3 id="result"></h3>
-    <p id="error" style="color:red;"></p>
+            <div class="form-group">
+                <label>Colesterol</label>
+                <input type="number" step="1" min="50" max="400" name="cholesterol_level" placeholder="Colesterol (50-400)" required>
+            </div>
 
-    <script>
-        document.getElementById("predictionForm").addEventListener("submit", async function(e) {
-            e.preventDefault();
+            <div class="form-group">
+                <label>Triglicéridos</label>
+                <input type="number" step="1" min="30" max="1000" name="triglycerides_level" placeholder="Triglicéridos (30-1000)" required>
+            </div>
 
-            const errorElement = document.getElementById("error");
-            const resultElement = document.getElementById("result");
-            errorElement.innerText = "";
-            resultElement.innerText = "";
+            <div class="form-group">
+                <label>Calorías Diarias</label>
+                <input type="number" step="1" min="500" max="10000" name="daily_calorie_intake" placeholder="Calorías diarias (500-10000)" required>
+            </div>
 
-            const formData = new FormData(this);
-            const data = {};
+            <div class="form-group">
+                <label>Consumo de Azúcar (g/día)</label>
+                <input type="number" step="0.1" min="0" max="1000" name="sugar_intake_grams_per_day" placeholder="Azúcar (g/día)" required>
+            </div>
 
-            for (let [key, value] of formData.entries()) {
-                if (value === "") {
-                    errorElement.innerText = "Todos los campos son obligatorios.";
-                    return;
+            <div class="form-group">
+                <label>Horas de Sueño</label>
+                <input type="number" step="0.1" min="0" max="24" name="sleep_hours" placeholder="Horas de sueño (0-24)" required>
+            </div>
+
+            <div class="form-group">
+                <label>Nivel de Estrés</label>
+                <input type="number" step="1" min="0" max="10" name="stress_level" placeholder="Estrés (0-10)" required>
+            </div>
+
+            <div class="form-group">
+                <label>Circunferencia de Cintura (cm)</label>
+                <input type="number" step="0.1" min="30" max="200" name="waist_circumference_cm" placeholder="Cintura (cm)" required>
+            </div>
+
+            <div class="form-group">
+                <label>Género</label>
+                <select name="gender" required>
+                    <option value="">Seleccionar</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Nivel de Actividad Física</label>
+                <select name="physical_activity_level" required>
+                    <option value="">Seleccionar</option>
+                    <option value="Low">Low</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Historial Familiar de Diabetes</label>
+                <select name="family_history_diabetes" required>
+                    <option value="">Seleccionar</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+
+            <button type="submit">Predecir</button>
+        </form>
+
+        <h3 id="result"></h3>
+        <p id="error" style="color:red;"></p>
+
+        <script>
+            document.getElementById("predictionForm").addEventListener("submit", async function(e) {
+                e.preventDefault();
+
+                const errorElement = document.getElementById("error");
+                const resultElement = document.getElementById("result");
+                errorElement.innerText = "";
+                resultElement.innerText = "";
+
+                const formData = new FormData(this);
+                const data = {};
+
+                for (let [key, value] of formData.entries()) {
+                    if (value === "") {
+                        errorElement.innerText = "Todos los campos son obligatorios.";
+                        return;
+                    }
+
+                    if (!isNaN(value)) {
+                        data[key] = parseFloat(value);
+                    } else {
+                        data[key] = value;
+                    }
                 }
 
-                if (!isNaN(value)) {
-                    data[key] = parseFloat(value);
-                } else {
-                    data[key] = value;
+                try {
+                    const response = await fetch("/predict", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Error en el servidor.");
+                    }
+
+                    const result = await response.json();
+
+                    if (typeof result.prediction !== "number") {
+                        throw new Error("Respuesta inválida del modelo.");
+                    }
+
+                    resultElement.innerText =
+                        "Riesgo estimado: " + result.prediction.toFixed(2) + "%";
+
+                } catch (err) {
+                    errorElement.innerText = "Ocurrió un error durante la predicción.";
                 }
-            }
-
-            try {
-                const response = await fetch("/predict", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                });
-
-                if (!response.ok) {
-                    throw new Error("Error en el servidor.");
-                }
-
-                const result = await response.json();
-
-                if (typeof result.prediction !== "number") {
-                    throw new Error("Respuesta inválida del modelo.");
-                }
-
-                resultElement.innerText =
-                    "Riesgo estimado: " + result.prediction.toFixed(2) + "%";
-
-            } catch (err) {
-                errorElement.innerText = "Ocurrió un error durante la predicción.";
-            }
-        });
-    </script>
+            });
+        </script>
+    </div>
 </body>
 </html>
