@@ -8,19 +8,19 @@
 
     <form id="predictionForm">
 
-        <input type="number" step="any" name="age" placeholder="Edad" required><br>
-        <input type="number" step="any" name="bmi" placeholder="BMI" required><br>
-        <input type="number" step="any" name="blood_pressure" placeholder="Presión" required><br>
-        <input type="number" step="any" name="fasting_glucose_level" placeholder="Glucosa" required><br>
-        <input type="number" step="any" name="insulin_level" placeholder="Insulina" required><br>
-        <input type="number" step="any" name="HbA1c_level" placeholder="HbA1c" required><br>
-        <input type="number" step="any" name="cholesterol_level" placeholder="Colesterol" required><br>
-        <input type="number" step="any" name="triglycerides_level" placeholder="Triglicéridos" required><br>
-        <input type="number" step="any" name="daily_calorie_intake" placeholder="Calorías diarias" required><br>
-        <input type="number" step="any" name="sugar_intake_grams_per_day" placeholder="Azúcar (g/día)" required><br>
-        <input type="number" step="any" name="sleep_hours" placeholder="Horas de sueño" required><br>
-        <input type="number" step="any" name="stress_level" placeholder="Estrés" required><br>
-        <input type="number" step="any" name="waist_circumference_cm" placeholder="Cintura (cm)" required><br>
+        <input type="number" step="1" min="0" max="120" name="age" placeholder="Edad (0-120)" required><br>
+        <input type="number" step="0.1" min="10" max="80" name="bmi" placeholder="BMI (10-80)" required><br>
+        <input type="number" step="1" min="50" max="250" name="blood_pressure" placeholder="Presión (50-250)" required><br>
+        <input type="number" step="1" min="50" max="500" name="fasting_glucose_level" placeholder="Glucosa (50-500)" required><br>
+        <input type="number" step="0.1" min="0" max="500" name="insulin_level" placeholder="Insulina (0-500)" required><br>
+        <input type="number" step="0.1" min="3" max="20" name="HbA1c_level" placeholder="HbA1c (3-20)" required><br>
+        <input type="number" step="1" min="50" max="400" name="cholesterol_level" placeholder="Colesterol (50-400)" required><br>
+        <input type="number" step="1" min="30" max="1000" name="triglycerides_level" placeholder="Triglicéridos (30-1000)" required><br>
+        <input type="number" step="1" min="500" max="10000" name="daily_calorie_intake" placeholder="Calorías diarias (500-10000)" required><br>
+        <input type="number" step="0.1" min="0" max="1000" name="sugar_intake_grams_per_day" placeholder="Azúcar (g/día)" required><br>
+        <input type="number" step="0.1" min="0" max="24" name="sleep_hours" placeholder="Horas de sueño (0-24)" required><br>
+        <input type="number" step="1" min="0" max="10" name="stress_level" placeholder="Estrés (0-10)" required><br>
+        <input type="number" step="0.1" min="30" max="200" name="waist_circumference_cm" placeholder="Cintura (cm)" required><br>
 
         <select name="gender" required>
             <option value="">Género</option>
@@ -45,31 +45,56 @@
     </form>
 
     <h3 id="result"></h3>
+    <p id="error" style="color:red;"></p>
 
     <script>
         document.getElementById("predictionForm").addEventListener("submit", async function(e) {
             e.preventDefault();
 
+            const errorElement = document.getElementById("error");
+            const resultElement = document.getElementById("result");
+            errorElement.innerText = "";
+            resultElement.innerText = "";
+
             const formData = new FormData(this);
             const data = {};
 
-            formData.forEach((value, key) => {
-                if (!isNaN(value) && value !== "") {
+            for (let [key, value] of formData.entries()) {
+                if (value === "") {
+                    errorElement.innerText = "Todos los campos son obligatorios.";
+                    return;
+                }
+
+                if (!isNaN(value)) {
                     data[key] = parseFloat(value);
                 } else {
                     data[key] = value;
                 }
-            });
+            }
 
-            const response = await fetch("/predict", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
+            try {
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
 
-            const result = await response.json();
-            document.getElementById("result").innerText =
-                "Riesgo estimado: " + result.prediction.toFixed(2) + "%";
+                if (!response.ok) {
+                    throw new Error("Error en el servidor.");
+                }
+
+                const result = await response.json();
+
+                if (typeof result.prediction !== "number") {
+                    throw new Error("Respuesta inválida del modelo.");
+                }
+
+                resultElement.innerText =
+                    "Riesgo estimado: " + result.prediction.toFixed(2) + "%";
+
+            } catch (err) {
+                errorElement.innerText = "Ocurrió un error durante la predicción.";
+            }
         });
     </script>
 </body>
