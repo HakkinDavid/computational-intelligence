@@ -5,8 +5,11 @@ from uuid import uuid4
 import pandas as pd
 import torch
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class DocumentoInput(BaseModel):
     text: str
@@ -151,6 +154,5 @@ def buscar_documentos(busqueda: BusquedaInput):
 
 @app.get("/", response_class=HTMLResponse)
 def abrir_local():
-    return """<html>
-<h1>local</h1>
-</html>"""
+    with open("static/index.html") as html:
+        return html.read()
