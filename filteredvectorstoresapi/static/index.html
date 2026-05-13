@@ -216,7 +216,6 @@
                 const query = document.getElementById("query").value
 
                 if (!query.trim()) {
-                    resultados_actuales = []
                     document.getElementById("resultados").innerHTML = ""
                     estado(`${todos_los_documentos.length} documentos en memoria`)
                     return
@@ -236,23 +235,22 @@
 
                 const resultados = await response.json()
 
-                resultados_actuales = resultados.map(r => ({
+                const encontrados = resultados.map(r => ({
                     id: r.metadata.document_id,
                     text: r.text,
                     metadata: r.metadata,
                     score: r.score
                 }))
 
-                renderizar_resultados(resultados_actuales)
-
+                renderizar_resultados(encontrados)
                 documentos_actuales = todos_los_documentos
 
                 documento_activo = null
 
-                if (resultados_actuales.length > 0)
-                    visualizar(resultados_actuales[0])
+                if (encontrados.length > 0)
+                    visualizar(encontrados[0])
 
-                estado(`${resultados_actuales.length} resultados encontrados`)
+                estado(`${resultados.length} resultados encontrados`)
             }, 250)
         }
 
