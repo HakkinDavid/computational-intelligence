@@ -1,4 +1,4 @@
-<!--el diseño se lo aventó Gregorio Patricio Terrazas Quinto-->
+<!--el diseño se lo aventó Gregorio Patricio Terrazas Quinto, porque ni loco me pongo a montar un sistema SvelteKit+TailwindCSS para un juguetito-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -42,14 +42,19 @@
 
         .layout {
             display: grid;
-            grid-template-columns: 320px 1fr;
+            grid-template-columns: 320px 320px 1fr;
             gap: 20px;
             margin-top: 20px;
+            align-items: start;
         }
 
         .panel {
             border: 1px solid #ccc;
             padding: 15px;
+        }
+
+        .panel h3 {
+            margin-top: 0;
         }
 
         .documento {
@@ -68,15 +73,16 @@
         }
 
         .metadata {
-            background: #f3f3f3;
-            padding: 10px;
-            overflow-x: auto;
+            color: #666;
+            margin-top: 10px;
+            line-height: 1.5;
         }
 
         .texto-documento {
-            line-height: 1.6;
+            line-height: 1.8;
             white-space: pre-wrap;
-            margin-top: 20px;
+            margin-top: 30px;
+            font-size: 18px;
         }
 
         .resultado {
@@ -99,6 +105,31 @@
         #estado {
             color: #666;
         }
+
+        .documento-word {
+            background: white;
+            min-height: 900px;
+            padding: 80px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+        }
+
+        .subtitulo {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .resultado-item {
+            width: 100%;
+            text-align: left;
+            margin-bottom: 8px;
+            padding: 10px;
+        }
+
+        .resultado-item.activo {
+            background: black;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -116,9 +147,7 @@
     </div>
 
     <div class="fila">
-        <input id="query" placeholder="semantic query">
-        <button onclick="buscar()">Buscar</button>
-        <button onclick="todos()">Todos</button>
+        <input id="query" placeholder="semantic query" oninput="buscar()">
     </div>
 
     <div class="fila">
@@ -133,19 +162,24 @@
         </div>
 
         <div class="panel">
-            <h2 id="titulo">Visualizador</h2>
+            <h3>Resultados</h3>
+            <div id="resultados"></div>
+        </div>
+
+        <div class="documento-word">
+            <h1 id="titulo">Visualizador</h1>
 
             <div id="metadata" class="metadata"></div>
 
             <div id="texto_documento" class="texto-documento"></div>
-
-            <div id="resultados"></div>
         </div>
     </div>
 
     <script>
         let documentos_actuales = []
         let documento_activo = null
+        let todos_los_documentos = []
+        let timeout_busqueda = null
 
         function estado(texto) {
             document.getElementById("estado").textContent = texto
@@ -176,44 +210,47 @@
         }
 
         async function buscar() {
-            estado("Buscando...")
+            clearTimeout(timeout_busqueda)
 
-            const response = await fetch("/documents/search", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    query: document.getElementById("query").value
+            timeout_busqueda = setTimeout(async () => {
+                const query = document.getElementById("query").value
+
+                if (!query.trim()) {
+                    document.getElementById("resultados").innerHTML = ""
+                    estado(`${todos_los_documentos.length} documentos en memoria`)
+                    return
+                }
+
+                estado("Buscando...")
+
+                const response = await fetch("/documents/search", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        query
+                    })
                 })
-            })
 
-            const resultados = await response.json()
+                const resultados = await response.json()
 
-            documentos_actuales = resultados.map(r => ({
-                id: r.metadata.document_id,
-                text: r.text,
-                metadata: r.metadata,
-                score: r.score
-            }))
+                const encontrados = resultados.map(r => ({
+                    id: r.metadata.document_id,
+                    text: r.text,
+                    metadata: r.metadata,
+                    score: r.score
+                }))
 
-            renderizar(documentos_actuales)
+                renderizar_resultados(encontrados)
 
-            document.getElementById("resultados").innerHTML = resultados
-                .map(r => `
-                    <div class="resultado">
-                        <div class="score">
-                            similitud: ${(r.score * 100).toFixed(2)}%
-                        </div>
+                documento_activo = null
 
-                        <pre>${JSON.stringify(r.metadata, null, 2)}</pre>
+                if (encontrados.length > 0)
+                    visualizar(encontrados[0])
 
-                        <div>${r.text}</div>
-                    </div>
-                `)
-                .join("")
-
-            estado(`${resultados.length} resultados encontrados`)
+                estado(`${resultados.length} resultados encontrados`)
+            }, 250)
         }
 
         async function obtener() {
@@ -238,11 +275,11 @@
 
             const response = await fetch("/documents/all")
 
-            documentos_actuales = await response.json()
+            todos_los_documentos = await response.json()
+
+            documentos_actuales = todos_los_documentos
 
             renderizar(documentos_actuales)
-
-            document.getElementById("resultados").innerHTML = ""
 
             estado(`${documentos_actuales.length} documentos en memoria`)
         }
@@ -259,15 +296,42 @@
                 .join("")
         }
 
+        function renderizar_resultados(documentos) {
+            document.getElementById("resultados").innerHTML = documentos
+                .map(documento => `
+                    <button
+                        class="resultado-item ${documento_activo === documento.id ? "activo" : ""}"
+                        onclick='visualizar(${JSON.stringify(documento)})'>
+
+                        <div>
+                            ${(documento.score * 100).toFixed(2)}%
+                        </div>
+
+                        <div>
+                            ${documento.id}
+                        </div>
+                    </button>
+                `)
+                .join("")
+        }
+
         function visualizar(documento) {
             documento_activo = documento.id
 
             renderizar(documentos_actuales)
+            renderizar_resultados(documentos_actuales.filter(d => d.score !== undefined))
 
             document.getElementById("titulo").textContent = documento.id
 
-            document.getElementById("metadata").textContent =
-                JSON.stringify(documento.metadata, null, 2)
+            document.getElementById("metadata").innerHTML = `
+                <div class="subtitulo">
+                    category: ${documento.metadata.category || "-"}
+                </div>
+
+                <div class="subtitulo">
+                    location: ${documento.metadata.location || "-"}
+                </div>
+            `
 
             document.getElementById("texto_documento").textContent =
                 documento.text
