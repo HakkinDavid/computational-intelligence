@@ -1,46 +1,159 @@
+<!--el diseño se lo aventó Gregorio Patricio Terrazas Quinto-->
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FilteredVectorStore</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 40px;
+            max-width: 1400px;
+        }
+
+        textarea,
+        input,
+        button {
+            font-size: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            resize: vertical;
+        }
+
+        input {
+            padding: 8px;
+        }
+
+        button {
+            padding: 8px 14px;
+            cursor: pointer;
+        }
+
+        .fila {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .panel {
+            border: 1px solid #ccc;
+            padding: 15px;
+        }
+
+        .documento {
+            width: 100%;
+            text-align: left;
+            margin-bottom: 8px;
+            padding: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .documento.activo {
+            background: black;
+            color: white;
+        }
+
+        .metadata {
+            background: #f3f3f3;
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        .texto-documento {
+            line-height: 1.6;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+
+        .resultado {
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .score {
+            font-weight: bold;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #estado {
+            color: #666;
+        }
+    </style>
+</head>
 <body>
-    <h1>FilteredVectorStore</h1>
-
-    <textarea id="texto" rows="10" cols="60"></textarea>
-    <br><br>
-
-    <input id="category" placeholder="category">
-    <input id="location" placeholder="location">
-
-    <br><br>
-
-    <button onclick="crear()">Crear documento</button>
-
-    <hr>
-
-    <input id="query" placeholder="query">
-    <button onclick="buscar()">Buscar</button>
-    <button onclick="todos()">Todos</button>
-
-    <br><br>
-
-    <input id="document_id" placeholder="document id">
-    <button onclick="obtener()">Obtener por ID</button>
-
-    <hr>
-
-    <div id="documentos"></div>
-
-    <hr>
-
-    <div>
-        <h3>Visualizador</h3>
-        <div id="visualizador"></div>
+    <div class="topbar">
+        <h1>FilteredVectorStore</h1>
+        <div id="estado"></div>
     </div>
 
-    <hr>
+    <textarea id="texto" placeholder="texto del documento"></textarea>
 
-    <pre id="resultado"></pre>
+    <div class="fila">
+        <input id="category" placeholder="category">
+        <input id="location" placeholder="location">
+        <button onclick="crear()">Crear documento</button>
+    </div>
+
+    <div class="fila">
+        <input id="query" placeholder="semantic query">
+        <button onclick="buscar()">Buscar</button>
+        <button onclick="todos()">Todos</button>
+    </div>
+
+    <div class="fila">
+        <input id="document_id" placeholder="document id">
+        <button onclick="obtener()">Obtener por ID</button>
+    </div>
+
+    <div class="layout">
+        <div class="panel">
+            <h3>Documentos</h3>
+            <div id="documentos"></div>
+        </div>
+
+        <div class="panel">
+            <h2 id="titulo">Visualizador</h2>
+
+            <div id="metadata" class="metadata"></div>
+
+            <div id="texto_documento" class="texto-documento"></div>
+
+            <div id="resultados"></div>
+        </div>
+    </div>
 
     <script>
+        let documentos_actuales = []
+        let documento_activo = null
+
+        function estado(texto) {
+            document.getElementById("estado").textContent = texto
+        }
+
         async function crear() {
+            estado("Creando documento...")
+
             const response = await fetch("/documents", {
                 method: "POST",
                 headers: {
@@ -53,13 +166,18 @@
                 })
             })
 
-            document.getElementById("resultado").textContent =
-                JSON.stringify(await response.json(), null, 2)
+            const resultado = await response.json()
+
+            document.getElementById("document_id").value = resultado.id
+
+            estado(`Documento creado: ${resultado.id}`)
 
             todos()
         }
 
         async function buscar() {
+            estado("Buscando...")
+
             const response = await fetch("/documents/search", {
                 method: "POST",
                 headers: {
@@ -72,56 +190,87 @@
 
             const resultados = await response.json()
 
-            document.getElementById("resultado").textContent =
-                JSON.stringify(resultados, null, 2)
-
-            renderizar(resultados.map(r => ({
+            documentos_actuales = resultados.map(r => ({
                 id: r.metadata.document_id,
                 text: r.text,
-                metadata: r.metadata
-            })))
+                metadata: r.metadata,
+                score: r.score
+            }))
+
+            renderizar(documentos_actuales)
+
+            document.getElementById("resultados").innerHTML = resultados
+                .map(r => `
+                    <div class="resultado">
+                        <div class="score">
+                            similitud: ${(r.score * 100).toFixed(2)}%
+                        </div>
+
+                        <pre>${JSON.stringify(r.metadata, null, 2)}</pre>
+
+                        <div>${r.text}</div>
+                    </div>
+                `)
+                .join("")
+
+            estado(`${resultados.length} resultados encontrados`)
         }
 
         async function obtener() {
-            const response = await fetch(
-                `/documents/${document.getElementById("document_id").value}`
-            )
+            const id = document.getElementById("document_id").value
+
+            if (!id)
+                return
+
+            estado(`Obteniendo ${id}...`)
+
+            const response = await fetch(`/documents/${id}`)
 
             const documento = await response.json()
 
-            document.getElementById("resultado").textContent =
-                JSON.stringify(documento, null, 2)
-
             visualizar(documento)
+
+            estado(`Documento ${id} cargado`)
         }
 
         async function todos() {
+            estado("Cargando documentos...")
+
             const response = await fetch("/documents/all")
 
-            const documentos = await response.json()
+            documentos_actuales = await response.json()
 
-            renderizar(documentos)
+            renderizar(documentos_actuales)
+
+            document.getElementById("resultados").innerHTML = ""
+
+            estado(`${documentos_actuales.length} documentos en memoria`)
         }
 
         function renderizar(documentos) {
             document.getElementById("documentos").innerHTML = documentos
                 .map(documento => `
-                    <div>
-                        <button onclick='visualizar(${JSON.stringify(documento)})'>
-                            ${documento.id}
-                        </button>
-                    </div>
+                    <button
+                        class="documento ${documento_activo === documento.id ? "activo" : ""}"
+                        onclick='visualizar(${JSON.stringify(documento)})'>
+                        ${documento.id}
+                    </button>
                 `)
                 .join("")
         }
 
         function visualizar(documento) {
-            document.getElementById("visualizador").innerHTML = `
-                <h4>${documento.id}</h4>
-                <pre>${JSON.stringify(documento.metadata, null, 2)}</pre>
-                <hr>
-                <div>${documento.text}</div>
-            `
+            documento_activo = documento.id
+
+            renderizar(documentos_actuales)
+
+            document.getElementById("titulo").textContent = documento.id
+
+            document.getElementById("metadata").textContent =
+                JSON.stringify(documento.metadata, null, 2)
+
+            document.getElementById("texto_documento").textContent =
+                documento.text
         }
 
         todos()
