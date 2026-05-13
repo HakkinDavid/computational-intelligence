@@ -179,8 +179,7 @@
         let documentos_actuales = []
         let documento_activo = null
         let todos_los_documentos = []
-let timeout_busqueda = null
-let resultados_actuales = []
+        let timeout_busqueda = null
 
         function estado(texto) {
             document.getElementById("estado").textContent = texto
@@ -323,7 +322,13 @@ let resultados_actuales = []
             documento_activo = documento.id
 
             renderizar(documentos_actuales)
-            renderizar_resultados(resultados_actuales)
+            renderizar_resultados(
+                Array.from(document.getElementById("resultados").children).length
+                    ? JSON.parse(JSON.stringify(
+                        documentos_actuales.filter(d => d.score !== undefined)
+                    ))
+                    : []
+            )
 
             document.getElementById("titulo").textContent = documento.id
 
