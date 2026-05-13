@@ -148,6 +148,8 @@
 
     <div class="fila">
         <input id="query" placeholder="semantic query" oninput="buscar()">
+        <input id="filter_category" placeholder="filter category" oninput="buscar()">
+        <input id="filter_location" placeholder="filter location" oninput="buscar()">
     </div>
 
     <div class="fila">
@@ -215,8 +217,14 @@ let resultados_actuales = []
 
             timeout_busqueda = setTimeout(async () => {
                 const query = document.getElementById("query").value
+                const filter_category = document.getElementById("filter_category").value
+                const filter_location = document.getElementById("filter_location").value
 
-                if (!query.trim()) {
+                if (
+                    !query.trim()
+                    && !filter_category.trim()
+                    && !filter_location.trim()
+                ) {
                     resultados_actuales = []
                     document.getElementById("resultados").innerHTML = ""
                     estado(`${todos_los_documentos.length} documentos en memoria`)
@@ -231,7 +239,11 @@ let resultados_actuales = []
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        query
+                        query,
+                        metadata_filter: {
+                            ...(filter_category.trim() ? { category: filter_category } : {}),
+                            ...(filter_location.trim() ? { location: filter_location } : {})
+                        }
                     })
                 })
 
