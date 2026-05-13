@@ -180,6 +180,7 @@
         let documento_activo = null
         let todos_los_documentos = []
         let timeout_busqueda = null
+        let resultados_actuales = []
 
         function estado(texto) {
             document.getElementById("estado").textContent = texto
@@ -216,6 +217,7 @@
                 const query = document.getElementById("query").value
 
                 if (!query.trim()) {
+                    resultados_actuales = []
                     document.getElementById("resultados").innerHTML = ""
                     estado(`${todos_los_documentos.length} documentos en memoria`)
                     return
@@ -233,8 +235,7 @@
                     })
                 })
 
-                const resultados = await response.json()
-
+                resultados_actuales = []
                 const encontrados = resultados.map(r => ({
                     id: r.metadata.document_id,
                     text: r.text,
@@ -242,7 +243,9 @@
                     score: r.score
                 }))
 
-                renderizar_resultados(encontrados)
+                resultados_actuales = encontrados
+
+                renderizar_resultados(resultados_actuales)
                 documentos_actuales = todos_los_documentos
 
                 documento_activo = null
@@ -320,13 +323,7 @@
             documento_activo = documento.id
 
             renderizar(documentos_actuales)
-            renderizar_resultados(
-                Array.from(document.getElementById("resultados").children).length
-                    ? JSON.parse(JSON.stringify(
-                        documentos_actuales.filter(d => d.score !== undefined)
-                    ))
-                    : []
-            )
+            renderizar_resultados(resultados_actuales)
 
             document.getElementById("titulo").textContent = documento.id
 
