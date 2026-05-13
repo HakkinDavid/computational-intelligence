@@ -156,3 +156,7 @@ def buscar_documentos(busqueda: BusquedaInput):
 def abrir_local():
     with open("static/index.html") as html:
         return html.read()
+    
+@app.get("/documents/all")
+def todos():
+    return list(documentos_originales.values())

@@ -17,6 +17,25 @@
 
     <input id="query" placeholder="query">
     <button onclick="buscar()">Buscar</button>
+    <button onclick="todos()">Todos</button>
+
+    <br><br>
+
+    <input id="document_id" placeholder="document id">
+    <button onclick="obtener()">Obtener por ID</button>
+
+    <hr>
+
+    <div id="documentos"></div>
+
+    <hr>
+
+    <div>
+        <h3>Visualizador</h3>
+        <div id="visualizador"></div>
+    </div>
+
+    <hr>
 
     <pre id="resultado"></pre>
 
@@ -36,6 +55,8 @@
 
             document.getElementById("resultado").textContent =
                 JSON.stringify(await response.json(), null, 2)
+
+            todos()
         }
 
         async function buscar() {
@@ -49,9 +70,61 @@
                 })
             })
 
+            const resultados = await response.json()
+
             document.getElementById("resultado").textContent =
-                JSON.stringify(await response.json(), null, 2)
+                JSON.stringify(resultados, null, 2)
+
+            renderizar(resultados.map(r => ({
+                id: r.metadata.document_id,
+                text: r.text,
+                metadata: r.metadata
+            })))
         }
+
+        async function obtener() {
+            const response = await fetch(
+                `/documents/${document.getElementById("document_id").value}`
+            )
+
+            const documento = await response.json()
+
+            document.getElementById("resultado").textContent =
+                JSON.stringify(documento, null, 2)
+
+            visualizar(documento)
+        }
+
+        async function todos() {
+            const response = await fetch("/documents/all")
+
+            const documentos = await response.json()
+
+            renderizar(documentos)
+        }
+
+        function renderizar(documentos) {
+            document.getElementById("documentos").innerHTML = documentos
+                .map(documento => `
+                    <div>
+                        <button onclick='visualizar(${JSON.stringify(documento)})'>
+                            ${documento.id}
+                        </button>
+                    </div>
+                `)
+                .join("")
+        }
+
+        function visualizar(documento) {
+            document.getElementById("visualizador").innerHTML = `
+                <h4>${documento.id}</h4>
+                <pre>${JSON.stringify(documento.metadata, null, 2)}</pre>
+                <hr>
+                <div>${documento.text}</div>
+            `
+        }
+
+        todos()
     </script>
 </body>
 </html>
