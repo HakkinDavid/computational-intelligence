@@ -1,10 +1,23 @@
 from fastapi.responses import HTMLResponse
 from sentence_transformers import SentenceTransformer
+from pydantic import BaseModel
+from uuid import uuid4
 import pandas as pd
 import torch
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
+
+class DocumentoInput(BaseModel):
+    text: str
+    category: str
+    location: str
+
+
+class BusquedaInput(BaseModel):
+    query: str
+    top_k: int = 5
+    metadata_filter: dict[str, str] | None = None
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.cuda.is_available()
@@ -68,8 +81,73 @@ class FilteredVectorStore:
 
 tienda_vector = FilteredVectorStore(embedding_model=SentenceTransformer("all-MiniLM-L6-v2", device=device.type))
 
+documentos_originales = {}
+
 def dataframe_a_doc_lista(input: pd.DataFrame):
     return [Document(text=str(row.text), metadata={'category': str(row.category), 'location': str(row.location)}) for row in input.itertuples(index=False)]
+
+
+def fragmentar(texto: str):
+    return [texto] if len(texto) <= 500 else [texto[i:i+400] for i in range(0, len(texto), 400)]
+
+
+@app.post("/documents")
+def crear_documento(documento: DocumentoInput):
+    document_id = str(uuid4())
+    fragmentos = fragmentar(documento.text)
+
+    documentos_originales[document_id] = {
+        'id': document_id,
+        'text': documento.text,
+        'metadata': {
+            'category': documento.category,
+            'location': documento.location
+        }
+    }
+
+    tienda_vector.add_documents([
+        Document(
+            text=fragmento,
+            metadata={
+                'document_id': document_id,
+                'category': documento.category,
+                'location': documento.location
+            }
+        )
+        for fragmento in fragmentos
+    ])
+
+    return {
+        'id': document_id,
+        'chunks': len(fragmentos)
+    }
+
+
+@app.get("/documents/{document_id}")
+def obtener_documento(document_id: str):
+    documento = documentos_originales.get(document_id)
+
+    if documento is None:
+        raise HTTPException(status_code=404, detail='Documento no encontrado')
+
+    return documento
+
+
+@app.post("/documents/search")
+def buscar_documentos(busqueda: BusquedaInput):
+    return [
+        {
+            'score': resultado.score,
+            'text': resultado.document.text,
+            'metadata': resultado.document.metadata
+        }
+        for resultado in tienda_vector.search(
+            query=busqueda.query,
+            top_k=busqueda.top_k,
+            metadata_filter=busqueda.metadata_filter
+        )
+    ]
+
 
 @app.get("/", response_class=HTMLResponse)
 def abrir_local():
